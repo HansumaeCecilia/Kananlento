@@ -12,6 +12,7 @@ class Game:
 
     def run(self):                    
         clock = pygame.time.Clock()               
+        self.running = True
         
         # While loop for quitting the game
         while self.running:            
