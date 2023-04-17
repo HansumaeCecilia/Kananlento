@@ -4,7 +4,7 @@ import pygame
 DEFAULT_SCREEN_SIZE = (800, 450)
 FPS_TEXT_COLOR = (128, 0, 128) # Dark purple
 TEXT_COLOR = (128, 0, 0) # Dark red
-DEBUG = 1
+DEBUG = 0
 
 def main():
     game = Game()
@@ -170,14 +170,16 @@ class Game:
             self.remove_oldest_obstacle()
 
         self.bird_collides_with_obstacle = False
-        for obstacle in self.obstacles:
-            position = obstacle.move(self.screen_w * 0.005)
+        
+        for obstacle in self.obstacles:            
+            if self.bird_alive:
+                obstacle.move(self.screen_w * 0.005)
+
             if obstacle.collides_with_circle(self.bird_pos, self.bird_radius):
                 self.bird_collides_with_obstacle = True
             
         if self.bird_collides_with_obstacle:
-            pass # Commented for testing:
-                 # self.bird_alive = False
+            self.bird_alive = False
 
     def update_screen(self):    
 
@@ -250,8 +252,7 @@ class Obstacle:
                    hole_size=hole_size, position=screen_w)
 
     def move(self, speed):
-        self.position -= speed
-        return self.position
+        self.position -= speed        
 
     def is_visible(self):
         return self.position + self.width >= 0    
