@@ -40,7 +40,7 @@ class Game:
 
         self.bird_dead_imgs = [
             pygame.transform.rotozoom(img, 0, self.screen_h / 9600).convert_alpha()
-            for img in original_bird_images
+            for img in original_bird_dead_images
         ]   
         original_bg_images = [
             pygame.image.load(f"images/background/layer_{i}.png")
@@ -112,6 +112,7 @@ class Game:
         else:
             pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
             self.is_fullscreen = True
+        
         screen = pygame.display.get_surface()
         self.screen_w = screen.get_width()
         self.screen_h = screen.get_height()
@@ -140,49 +141,56 @@ class Game:
         if self.bird_lift or not self.bird_alive:
             self.bird_frame += 1
 
+        # Move bird by its set speed
         bird_y += self.bird_y_speed        
 
         if self.bird_alive:
+            # Calculate the bird's angle position
             self.bird_angle = -90 * 0.04 * self.bird_y_speed
             self.bird_angle = max(min(self.bird_angle, 60), -60)
 
+        # Check if bird has hit the ground
         if bird_y > self.screen_h * 0.78:
             bird_y = self.screen_h * 0.78
             self.bird_y_speed = 0
             self.bird_alive = False
         
+        # Set bird's x-y-coordinates into self.bird_pos variable
         self.bird_pos = (self.bird_pos[0], bird_y)
 
+        # Add new obstacle when the latest has passed screen's midpoint
         if self.obstacles[-1].position < self.screen_w / 2:
             self.add_obstacle()
 
-        # Poista vasemmanpuoleisin este, kun se menee pois ruudulta
+        # remove left obstacle when it disappears from the screen
         if self.obstacles[0].position < -self.obstacles[0].width:
             self.remove_oldest_obstacle()
 
         for obstacle in self.obstacles:
             obstacle.move(self.screen_w * 0.005)
 
-    def update_screen(self):        
+    def update_screen(self):    
+
+        # Draw background layers    
         for i in range(len(self.bg_imgs)):
-            # Ensin piirrä vasen tausta
+            # First draw the left-side bg
             self.screen.blit(self.bg_imgs[i], (self.bg_pos[i], 0))
-            # Jos vasen tausta ei riitä peittämään koko ruutua, niin...
+            # If the left bg doesn't cover entire screen...
             if self.bg_pos[i] + self.bg_widths[i] < self.screen_w:
-                # ...piirrä sama tausta vielä oikealle puolelle
+                # ...draw the same bg on the right side
                 self.screen.blit(
                     self.bg_imgs[i],
                     (self.bg_pos[i] + self.bg_widths[i], 0)
                 )
-            # Jos taustaa on jo siirretty sen leveyden verran...
+            # If bg had already been moved its width's worth...
             if self.bg_pos[i] < -self.bg_widths[i]:
-                # ...niin aloita alusta
+                # ...start over
                 self.bg_pos[i] += self.bg_widths[i]
 
         for obstacle in self.obstacles:
             obstacle.render(self.screen)
 
-        # Piirrä lintu
+        # Draw the bird
         if self.bird_alive:
             bird_img_i = self.bird_imgs[(self.bird_frame // 3) % 4]
         else:
@@ -196,7 +204,7 @@ class Game:
             y = self.screen_h / 2 - game_over_img.get_height() / 2
             self.screen.blit(game_over_img, (x, y))
 
-        # Piirrä FPS luku
+        # Draw FPS number
         if self.show_fps:
             fps_text = f"{self.clock.get_fps():.1f} fps"
             fps_img = self.font16.render(fps_text, True, FPS_TEXT_COLOR)
@@ -207,17 +215,18 @@ class Game:
 
 class Obstacle:
     def __init__(self, position, upper_height, lower_height, width=100):
-        self.position = position  # vasemman reunan sijainti
+        self.position = position  # Left side's position
         self.upper_height = upper_height
         self.lower_height = lower_height
         self.width = width
-        self.color = (0, 128, 0)  # dark green
+        self.color = (0, 128, 0)  # Dark green
 
     @classmethod
     def make_random(cls, screen_w, screen_h):
-        h1 = random.randint(int(screen_h * 0.05), int(screen_h * 0.75))
-        h2 = random.randint(int((screen_h - h1) * 0.05),
-                             int((screen_h - h1) * 0.75))
+        hole_size = random.randint(int(screen_h * 0.25),
+                                   int(screen_h * 0.75))
+        h2 = random.randint(int(screen_h * 0.15), int(screen_h * 0.75))
+        h1 = screen_h - h2 - hole_size
         return cls(upper_height=h1, lower_height=h2, position=screen_w)
 
     def move(self, speed):
