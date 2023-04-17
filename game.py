@@ -32,7 +32,9 @@ class Game:
         self.bird_imgs = [
             pygame.transform.rotozoom(x, 0, self.screen_h / 9600).convert_alpha()
             for x in original_bird_images
-        ]     
+        ]    
+
+        self.bird_radius = self.bird_imgs[0].get_height()  / 2 # Approximate value
         original_bird_dead_images = [
             pygame.image.load(f"images/chicken/got_hit/frame-{i}.png")
             for i in [1, 2]
@@ -162,12 +164,14 @@ class Game:
         if self.obstacles[-1].position < self.screen_w / 2:
             self.add_obstacle()
 
-        # remove left obstacle when it disappears from the screen
-        if self.obstacles[0].position < -self.obstacles[0].width:
+        # Remove left obstacle when it disappears from the screen
+        if not self.obstacles[0].is_visible():
             self.remove_oldest_obstacle()
 
         for obstacle in self.obstacles:
-            obstacle.move(self.screen_w * 0.005)
+            position = obstacle.move(self.screen_w * 0.005)
+            if obstacle.collides_with_circle(self.bird_pos, self.bird_radius):
+                self.bird_alive = False
 
     def update_screen(self):    
 
@@ -214,10 +218,12 @@ class Game:
         pygame.display.flip()
 
 class Obstacle:
-    def __init__(self, position, upper_height, lower_height, width=100):
+    def __init__(self, position, upper_height, lower_height, 
+                 hole_size, width=100):
         self.position = position  # Left side's position
         self.upper_height = upper_height
         self.lower_height = lower_height
+        self.hole_size = hole_size
         self.width = width
         self.color = (0, 128, 0)  # Dark green
 
@@ -227,13 +233,27 @@ class Obstacle:
                                    int(screen_h * 0.75))
         h2 = random.randint(int(screen_h * 0.15), int(screen_h * 0.75))
         h1 = screen_h - h2 - hole_size
-        return cls(upper_height=h1, lower_height=h2, position=screen_w)
+        return cls(upper_height=h1, lower_height=h2,
+                   hole_size=hole_size, position=screen_w)
 
     def move(self, speed):
         self.position -= speed
+        return self.position
 
     def is_visible(self):
         return self.position + self.width >= 0
+    
+    def collides_with_circle(self, center, radius):
+        (x, y) = center
+        y1 = self.upper_height
+        y2 = self.upper_height + self.hole_size
+        p = self.position
+        q = self.position + self.width
+
+        if x - radius > q or x + radius < p:
+            return False
+        
+        return False # TODO: Calculate collision
 
     def render(self, screen):
         x = self.position
